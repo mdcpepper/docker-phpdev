@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+# if [ "$(uname)" == "Darwin" ]; then
+#     export OS="mac"
+# elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+#     export OS="linux"
+# elif [ "$(expr substr $(uname -s) 1 5)" == "MINGW" ]; then
+#     export OS="win"
+# fi
+
+# Set environment variables for dev
+export ENVIRONMENT=${APP_ENV:-dev}
+export APP_PORT=${APP_PORT:-80}
+
+export XDEBUG_HOST=$(ipconfig | grep -i 'IPv4 Address' | cut -d: -f2 |sed -n '2p')
+
+COMPOSE="docker-compose"
+
+# mingw tries to convert the unix paths we have in here to windows ones, which
+# doesn't work, so we need to use double slashes at the beginning of our working
+# directory path, (eg: //var/www/html not /var/www/html) to skip this behaviour
+
+# If we pass any arguments...
+if [ $# -gt 0 ];then
+
+    # If "exec" is used, pass-thru to a new container
+    if [ "$1" == "exec" ]; then
+        shift 1
+        winpty $COMPOSE exec $@
+
+    # If "php" is used, pass-thru to "php"
+    # inside a new container
+    elif [ "$1" == "php" ]; then
+        shift 1
+        $COMPOSE run --rm \
+            -w //var/www/html \
+            app \
+            php "$@"
+
+    # If "composer" is used, pass-thru to "composer"
+    # inside a new container
+    elif [ "$1" == "composer" ]; then
+        shift 1
+        $COMPOSE run --rm \
+            -w //var/www/html \
+            app \
+            composer "$@"
+
+    # If "npm" is used, run npm
+    # from our node container
+    elif [ "$1" == "npm" ]; then
+        shift 1
+        $COMPOSE run --rm \
+            -w //var/www/html \
+            node \
+            npm "$@"
+
+    # If "gulp" is used, run gulp
+    # from our node container
+    elif [ "$1" == "gulp" ]; then
+        shift 1
+        $COMPOSE run --rm \
+            -w //var/www/html \
+            node \
+            ./node_modules/.bin/gulp "$@"
+
+    # Else, pass-thru args to docker-compose
+    else
+        $COMPOSE "$@"
+    fi
+
+else
+    $COMPOSE ps
+fi

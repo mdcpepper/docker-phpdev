@@ -1,0 +1,51 @@
+version: '2'
+services:
+  app:
+    build:
+      context: ./docker/app
+      dockerfile: Dockerfile
+    image: tinydots/phpapp
+    environment:
+      XDEBUG_HOST: ${XDEBUG_HOST}
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "${APP_PORT}:80"
+    networks:
+      - phpdev
+  node:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile
+    image: tinydots/node
+    volumes:
+      - .:/var/www/html
+    networks:
+      - phpdev
+  mysql:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "phpdev"
+      MYSQL_USER: "mysql"
+      MYSQL_PASSWORD: "phpdev"
+    volumes:
+      - mysqldata:/var/lib/mysql
+    networks:
+      - phpdev
+  redis:
+    image: redis:alpine
+    volumes:
+      - redisdata:/data
+    networks:
+      - phpdev
+networks:
+  phpdev:
+    driver: "bridge"
+volumes:
+  mysqldata:
+    driver: "local"
+  redisdata:
+    driver: "local"
